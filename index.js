@@ -4,9 +4,11 @@ const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-
+const cors = require('cors');
 const app = express();
 app.use(express.json());
+
+
 
 // Configuración de PostgreSQL
 const pool = new Pool({
@@ -17,6 +19,12 @@ const pool = new Pool({
   database: process.env.DB_NAME
 });
 
+
+app.use(cors({
+  origin: '*', // URL de tu frontend Angular
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
 // Middleware JWT
 function authenticateToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1];
