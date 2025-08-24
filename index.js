@@ -25,6 +25,8 @@ app.use(cors({
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization']
 }));
+
+app.options("*", cors());
 // Middleware JWT
 function authenticateToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1];
