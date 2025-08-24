@@ -21,8 +21,8 @@ const pool = new Pool({
 /* ================= CORS ================= */
 app.use(cors({
   origin: [
-    "http://localhost:4200",
-    "http://localhost:7153",
+  
+    "http://localhost:5173",
      // Angular local
     "https://tu-angular-en-render.onrender.com", // Angular en Render
  
