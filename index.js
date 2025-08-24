@@ -5,12 +5,11 @@ const { Pool } = require('pg');
 const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const cors = require('cors');
+
 const app = express();
 app.use(express.json());
 
-
-
-// Configuración de PostgreSQL
+/* ================= CONFIG DB ================= */
 const pool = new Pool({
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,
@@ -19,18 +18,22 @@ const pool = new Pool({
   database: process.env.DB_NAME
 });
 
-
+/* ================= CORS ================= */
 app.use(cors({
-  origin: '*', // URL de tu frontend Angular
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  origin: [
+    "http://localhost:4200", // Angular local
+    "https://tu-angular-en-render.onrender.com", // Angular en Render
+    "*" // pruebas abiertas
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-
-// Middleware JWT
+/* ================= MIDDLEWARE JWT ================= */
 function authenticateToken(req, res, next) {
   const token = req.headers['authorization']?.split(' ')[1];
   if (!token) return res.sendStatus(401);
+
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) return res.sendStatus(403);
     req.user = user;
@@ -38,12 +41,17 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// Swagger setup
+/* ================= SWAGGER ================= */
 const swaggerOptions = {
   swaggerDefinition: {
     openapi: '3.0.0',
-    info: { title: 'API Node PostgreSQL JWT', version: '1.0.0' },
-    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` }],
+    info: { 
+      title: 'API Node PostgreSQL JWT', 
+      version: '1.0.0' 
+    },
+    servers: [
+      { url: process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}` }
+    ],
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
@@ -52,6 +60,7 @@ const swaggerOptions = {
   },
   apis: ['./index.js']
 };
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJsDoc(swaggerOptions)));
 
 /* ================= LOGIN ================= */
@@ -78,13 +87,21 @@ app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     const { rows } = await pool.query(
-      `SELECT usuario_id, nombre, apellido, correo FROM usuarios WHERE correo=$1 AND contrasena=$2 AND activo=true`,
+      `SELECT usuario_id, nombre, apellido, correo 
+       FROM usuarios 
+       WHERE correo=$1 AND contrasena=$2 AND activo=true`,
       [username, password]
     );
+
     const user = rows[0];
     if (!user) return res.status(400).json({ message: 'Correo o contraseña incorrectos' });
 
-    const token = jwt.sign({ id: user.usuario_id, correo: user.correo }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(
+      { id: user.usuario_id, correo: user.correo }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '1h' }
+    );
+
     res.json({ token, usuario: user });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -119,19 +136,15 @@ app.post('/execute-sp', authenticateToken, async (req, res) => {
     if (!spName || !Array.isArray(params)) 
       return res.status(400).json({ message: 'spName y params son requeridos' });
 
-    // Detecta si es PROCEDURE o FUNCTION
-    const isProcedure = spName.startsWith('sp_');
-    const isFunction = spName.startsWith('fn_') || spName.startsWith('consultar_');
+    const placeholders = params.map((_, i) => `$${i + 1}`).join(',');
 
-    if (isProcedure) {
-      // Llamada a PROCEDURE: incluir OUT como null
-      const placeholders = params.map((_, i) => `$${i + 1}`).join(',');
+    // Detecta si es PROCEDURE o FUNCTION
+    if (spName.startsWith('sp_')) {
       const query = `CALL ${spName}(${placeholders})`;
       await pool.query(query, params);
       return res.json({ message: `${spName} ejecutado correctamente` });
 
-    } else if (isFunction) {
-      const placeholders = params.map((_, i) => `$${i + 1}`).join(',');
+    } else if (spName.startsWith('fn_') || spName.startsWith('consultar_')) {
       const query = `SELECT * FROM ${spName}(${placeholders})`;
       const { rows } = await pool.query(query, params);
       return res.json(rows);
@@ -145,4 +158,7 @@ app.post('/execute-sp', authenticateToken, async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log(`Server running on port ${process.env.PORT || 3000}`));
+/* ================= SERVER ================= */
+app.listen(process.env.PORT || 3000, () => 
+  console.log(`✅ Server running on port ${process.env.PORT || 3000}`)
+);
