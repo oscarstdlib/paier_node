@@ -25,11 +25,13 @@ app.use(cors({
     "http://localhost:7153",
      // Angular local
     "https://tu-angular-en-render.onrender.com", // Angular en Render
-    "*" // pruebas abiertas
+ 
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
+
 
 /* ================= MIDDLEWARE JWT ================= */
 function authenticateToken(req, res, next) {
@@ -62,6 +64,9 @@ const swaggerOptions = {
   },
   apis: ['./index.js']
 };
+
+
+
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJsDoc(swaggerOptions)));
 
