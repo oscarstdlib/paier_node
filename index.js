@@ -20,17 +20,10 @@ const pool = new Pool({
 
 /* ================= CORS ================= */
 app.use(cors({
-  origin: [
-  
-    "http://localhost:5173",
-     // Angular local
-    "https://tu-angular-en-render.onrender.com", // Angular en Render
- 
-  ],
+  origin: "*", // acepta todas las conexiones
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
-
 
 
 /* ================= MIDDLEWARE JWT ================= */
